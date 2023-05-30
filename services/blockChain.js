@@ -5,7 +5,8 @@ import store from '@/store'
 import address from '../artifacts/contractAddress.json'
 import abi from '../artifacts/contracts/DappLottery.sol/DappLottery.json'
 
-const { setWallet } = globalActions
+const { setWallet, setPurchasedNumbers, setJackpot, setParticipants, setLuckyNumbers, setResult } =
+  globalActions
 const contractAddress = address.address
 const contractAbi = abi.abi
 
@@ -61,7 +62,6 @@ const csrEthereumContract = async () => {
   const provider = new ethers.providers.Web3Provider(ethereum)
   const signer = provider.getSigner()
   const contract = new ethers.Contract(contractAddress, contractAbi, signer)
-  console.log(contract)
   return contract
 }
 
@@ -104,6 +104,7 @@ const ssrEthereumContract = async () => {
   return contract
 }
 
+// get function
 const getLotteries = async () => {
   const contract = await ssrEthereumContract()
   const lotteries = await contract.getLotteries()
@@ -117,6 +118,29 @@ const getLottery = async (id) => {
   return structureLotteries([lottery])[0]
 }
 
+const getLuckyNumbers = async (id) => {
+  const contract = await ssrEthereumContract()
+  const luckyNumbers = await contract.getLotteryLuckyNumbers(id)
+  return luckyNumbers
+}
+
+const getParticipants = async (id) => {
+  const participants = await (await ssrEthereumContract()).functions.getLotteryParticipants(id)
+  return structuredParticipants(participants[0])
+}
+
+const getPurchasedNumbers = async (id) => {
+  const participants = await (await ssrEthereumContract()).functions.getLotteryParticipants(id)
+  return structuredNumbers(participants[0])
+}
+
+const getLotteryResult = async (id) => {
+  const contract = await ssrEthereumContract()
+  const lotteryResult = await contract.getLotteryResult(id)
+  return structuredResult(lotteryResult)
+}
+
+// --
 const exportLuckyNumber = async (id, luckyNumbers) => {
   try {
     if (!ethereum) {
@@ -127,6 +151,8 @@ const exportLuckyNumber = async (id, luckyNumbers) => {
 
     tx = await contract.importLuckyNumber(id, luckyNumbers, { from: wallet })
     tx.wait()
+    const lotteryLuckyNumbers = await getLuckyNumbers(id)
+    store.dispatch(setLuckyNumbers(lotteryLuckyNumbers))
   } catch (err) {
     reportError(err)
   }
@@ -144,44 +170,53 @@ function generateLuckyNumber(count) {
   }
   return result
 }
-const getLuckyNumbers = async (id) => {
-  const contract = await ssrEthereumContract()
-  const luckyNumbers = await contract.getLotteryLuckyNumbers(id)
-  return luckyNumbers
-}
 
 const buyTicket = async (id, luckyNumberId, ticketPrice) => {
   try {
     if (!ethereum) return notifyUser('Please install Metamask')
     const wallet = store.getState().globalStates.wallet
-    console.log(wallet)
+
     const contract = await csrEthereumContract()
-    console.log(contract)
+
     tx = await contract.buyTicket(id, luckyNumberId, {
       from: wallet,
       value: toWei(ticketPrice),
     })
     await tx.wait()
-    // const purchasedNumbers = await getPurchasedNumbers(id)
-    // const lotteryParticipants = await getParticipants(id)
-    // const lottery = await getLottery(id)
 
-    // store.dispatch(setPurchasedNumbers(purchasedNumbers))
-    // store.dispatch(setParticipants(lotteryParticipants))
-    // store.dispatch(setJackpot(lottery))
+    const purchasedNumbers = await getPurchasedNumbers(id)
+    const lotteryParticipants = await getParticipants(id)
+    const lottery = await getLottery(id)
+
+    store.dispatch(setPurchasedNumbers(purchasedNumbers))
+    store.dispatch(setParticipants(lotteryParticipants))
+    store.dispatch(setJackpot(lottery))
   } catch (error) {
     reportError(error)
   }
 }
 
-const getParticipants = async (id) => {
-  const participants = await (await ssrEthereumContract()).functions.getLotteryParticipants(id)
-  return structuredParticipants(participants[0])
-}
+const performDraw = async (id, numberOfWinners) => {
+  try {
+    if (!ethereum) {
+      return reportError('Please install metamask')
+    }
+    const contract = await csrEthereumContract()
+    const wallet = store.getState().globalStates.wallet
 
-const getPurchasedNumbers = async (id) => {
-  const participants = await (await ssrEthereumContract()).functions.getLotteryParticipants(id)
-  return structuredNumbers(participants[0])
+    tx = await contract.randomlySelectWinners(id, numberOfWinners, { from: wallet })
+    tx.wait()
+
+    const lotteryParticipants = await getParticipants(id)
+    const lottery = await getLottery(id)
+    const result = await getLotteryResult(id)
+
+    store.dispatch(setParticipants(lotteryParticipants))
+    store.dispatch(setJackpot(lottery))
+    store.dispatch(setResult(result))
+  } catch (err) {
+    reportError(err)
+  }
 }
 // helper function
 const structureLotteries = (lotteries) =>
@@ -253,7 +288,7 @@ const structuredResult = (result) => {
   }
 
   for (let i = 0; i < result[5].length; i++) {
-    const winner = result[5][i][1]
+    const winner = result[5][i][1] //address
     LotteryResult.winners.push(winner)
   }
 
@@ -272,17 +307,19 @@ const reportError = (error) => {
   console.log(error)
 }
 export {
-  connectWallet,
   truncate,
-  monitorWalletConnection,
-  getLotteries,
-  structureLotteries,
-  getLottery,
-  createJackpot,
-  exportLuckyNumber,
-  generateLuckyNumber,
-  getLuckyNumbers,
   buyTicket,
+  getLottery,
+  performDraw,
+  getLotteries,
+  createJackpot,
+  connectWallet,
   getParticipants,
+  getLuckyNumbers,
+  getLotteryResult,
+  exportLuckyNumber,
+  structureLotteries,
   getPurchasedNumbers,
+  generateLuckyNumber,
+  monitorWalletConnection,
 }

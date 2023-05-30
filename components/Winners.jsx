@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { toast } from 'react-toastify'
 import { useRouter } from 'next/router'
 import { FaTimes } from 'react-icons/fa'
-// import { performDraw } from '@/services/blockchain'
+import { performDraw } from '@/services/blockchain'
 import { useSelector, useDispatch } from 'react-redux'
 import { globalActions } from '../store/globalSlice'
 
@@ -16,23 +16,22 @@ const Winners = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setClose('scale-0')
-    // await toast.promise(
-    //   new Promise(async (resolve, reject) => {
-    //     await performDraw(resultId, numberOfWinner)
-    //       .then(async () => {
-    //         setNumberOfWinner('')
-    //         dispatch(setWinnerModal('scale-0'))
-    //         resolve()
-    //       })
-    //       .catch(() => reject())
-    //   }),
-    //   {
-    //     pending: 'Approve transaction...',
-    //     success: 'Draw performed successfully 👌',
-    //     error: 'Encountered error 🤯',
-    //   }
-    // )
+    await toast.promise(
+      new Promise(async (resolve, reject) => {
+        await performDraw(resultId, numberOfWinner)
+          .then(async () => {
+            setNumberOfWinner('')
+            dispatch(setWinnersModal('scale-0'))
+            return resolve()
+          })
+          .catch(() => reject())
+      }),
+      {
+        pending: 'Approve transaction...',
+        success: 'Draw performed successfully 👌',
+        error: 'Encountered error 🤯',
+      }
+    )
   }
 
   return (

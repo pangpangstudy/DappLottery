@@ -12,14 +12,12 @@ export const globalActions = {
     state.winnersModal = action.payload
   },
   setJackpot: (state, action) => {
-    console.log(action)
-    state.jackpot = action
+    state.jackpot = action.payload
   },
   setLuckyNumbers: (state, action) => {
     state.luckyNumbers = action.payload
   },
   setPurchasedNumbers: (state, action) => {
-    console.log(action)
     state.purchasedNumbers = action.payload
   },
   setResult: (state, action) => {

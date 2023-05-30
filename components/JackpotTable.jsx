@@ -2,7 +2,6 @@
 import Link from 'next/link'
 import Countdown from './Countdown'
 import { toast } from 'react-toastify'
-import styled from 'styled-components'
 import { useDispatch, useSelector } from 'react-redux'
 import { FaEthereum } from 'react-icons/fa'
 import { buyTicket } from '../services/blockChain'
@@ -16,7 +15,8 @@ const JackpotTable = ({ jackpot, lotteryNumbers, purchasedNumber }) => {
   const { setGeneratorModal } = globalActions
   // const { wallet } = store.getState().globalStates
   const { wallet } = useSelector((state) => state.globalStates)
-  const onGenerate = async (luckyNumberId) => {
+  const onGenerate = async () => {
+    if (lotteryNumbers.length > 0) return toast.warning('Already generated')
     dispatch(setGeneratorModal('scale-100'))
   }
 
@@ -53,15 +53,17 @@ const JackpotTable = ({ jackpot, lotteryNumbers, purchasedNumber }) => {
         {jackpot?.expiresAt ? <Countdown timestamp={jackpot?.expiresAt} /> : null}
 
         <div className="flex justify-center items-center space-x-2">
-          <button
-            //   当布尔属性 disabled 存在时，元素将不可变、不能聚焦或与表单一同提交。用户将不能在表单控件本身或其子控件进行编辑或聚焦操作。
-            disabled={jackpot?.expiresAt < Date.now()}
-            onClick={onGenerate}
-            className={`flex flex-nowrap border py-2 px-4 rounded-full bg-amber-500
+          {wallet?.toLowerCase() === jackpot?.owner ? (
+            <button
+              //   当布尔属性 disabled 存在时，元素将不可变、不能聚焦或与表单一同提交。用户将不能在表单控件本身或其子控件进行编辑或聚焦操作。
+              disabled={jackpot?.expiresAt < Date.now()}
+              onClick={onGenerate}
+              className={`flex flex-nowrap border py-2 px-4 rounded-full bg-amber-500
 ${jackpot?.expiresAt < Date.now() ? 'cursor-not-allowed' : 'hover:bg-rose-600'} font-semibold `}
-          >
-            Generate Lucky Numbers
-          </button>
+            >
+              Generate Lucky Numbers
+            </button>
+          ) : null}
           {/* Results */}
           <Link
             href={`/results/` + jackpot?.id}

@@ -5,10 +5,10 @@ import { FaEthereum } from 'react-icons/fa'
 import Countdown from '@/components/Countdown'
 import { truncate } from '@/services/blockchain'
 import { globalActions } from '@/store/globalSlice'
+import { useRouter } from 'next/router'
 
 const ResultTable = ({ jackpot, participants, result }) => {
   const dispatch = useDispatch()
-
   const { wallet } = useSelector((state) => state.globalStates)
   const { setWinnersModal } = globalActions
 
@@ -19,11 +19,11 @@ const ResultTable = ({ jackpot, participants, result }) => {
         <p className="text-lg text-gray-600 font-semibold capitalize">{jackpot?.title}</p>
         <p className="text-sm text-gray-500 w-full sm:w-2/3">{jackpot?.description}</p>
         <p className="text-sm text-gray-500 w-full sm:w-2/3">
-          Result for{' '}
-          <span className="font-medium text-green-600">{'result?.winners.length'} winners</span> out
+          Result for
+          <span className="font-medium text-green-600">{jackpot?.winners?.length} winners</span> out
           of <span className="font-medium text-black">{jackpot?.participants} participants</span>{' '}
           <span className="font-medium text-gray-600">
-            {'result?.winners.length' > 0 ? 'Drawn' : 'Not Drawn'}
+            {result?.winners?.length > 0 ? 'Drawn' : 'Not Drawn'}
           </span>
         </p>
       </div>
@@ -32,13 +32,14 @@ const ResultTable = ({ jackpot, participants, result }) => {
         {jackpot?.expiresAt ? <Countdown timestamp={jackpot?.expiresAt} /> : null}
 
         <div className="flex justify-center items-center space-x-2">
-          {1 ? (
+          {wallet.toLowerCase() == jackpot?.owner ? (
             <button
               // disabled={jackpot?.expiresAt > Date.now()}
               onClick={() => dispatch(setWinnersModal('scale-100'))}
               className={`flex flex-nowrap border py-2 px-4 rounded-full bg-green-600 ${
-                // jackpot?.expiresAt > Date.now()
-                0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-rose-600'
+                jackpot?.expiresAt > Date.now()
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'hover:bg-rose-600'
               }`}
             >
               Perform Draw
@@ -77,7 +78,7 @@ const ResultTable = ({ jackpot, participants, result }) => {
                   <p className="text-slate-500">{participant.lotteryNumber}</p>
                   {result?.winners?.includes(participant.lotteryNumber) ? (
                     <p className="text-green-500 flex justify-start items-center">
-                      + <FaEthereum /> {'result?.sharePerWinner'} {' winner'}
+                      + <FaEthereum /> {result?.sharePerWinner} {' winner'}
                     </p>
                   ) : (
                     <p className="text-red-500 flex justify-start items-center">
